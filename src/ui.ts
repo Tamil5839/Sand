@@ -66,7 +66,13 @@ export function buildUI(app: App): void {
     sceneFolder.title(s ? `Selected scene: ${s.name}` : 'Selected scene');
     if (!s) return;
     const edited = (resample: boolean) => () => app.sceneEdited(s, resample);
-    sceneFolder.add(s, 'name').name('Name').onFinishChange(edited(false));
+    sceneFolder
+      .add(s, 'name')
+      .name('Name')
+      .onFinishChange(() => {
+        sceneFolder.title(`Selected scene: ${s.name}`);
+        app.sceneEdited(s, false);
+      });
     if (s.kind === 'text') {
       sceneFolder.add(s, 'text').name('Text (\\n = new line)').onFinishChange(edited(true));
       sceneFolder
