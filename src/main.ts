@@ -99,6 +99,7 @@ export class App {
   private fpsTime = 0;
   private recordingFull = false;
   private fullRes = false;
+  private appliedPreset: AspectPreset = '16:9';
   private uiHiddenBeforeRecording = false;
   private loopBeforeSequence = true;
 
@@ -111,6 +112,7 @@ export class App {
     const reason = LightboxRenderer.unsupportedReason(this.lightbox.renderer);
     if (reason) throw new Error(reason);
 
+    this.appliedPreset = this.settings.aspect;
     const [w, h] = this.bufferSize();
     this.aspect = w / h;
     this.lightbox.setSize(w, h);
@@ -407,6 +409,7 @@ export class App {
 
   /** Re-applies canvas resolution; if the frame shape changed, sand re-flows to fit. */
   applyResolution(): void {
+    this.appliedPreset = this.settings.aspect;
     const [w, h] = this.bufferSize();
     const aspect = w / h;
     this.lightbox.setSize(w, h);
@@ -424,7 +427,11 @@ export class App {
   }
 
   setAspect(preset: AspectPreset): void {
-    if (this.recorder.recording) return;
+    if (this.recorder.recording) {
+      this.settings.aspect = this.appliedPreset;
+      this.toast('Stop recording to change the frame');
+      return;
+    }
     this.settings.aspect = preset;
     this.applyResolution();
   }

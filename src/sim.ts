@@ -105,34 +105,40 @@ float sweepCoord(vec2 p, float rnd) {
 void main() {
   vec2 uv = gl_FragCoord.xy / resolution.xy;
   vec4 rnd = grainRandom(ivec2(gl_FragCoord.xy));
-  vec2 from = texture2D(tFrom, uv).xy;
   vec2 to = texture2D(tTo, uv).xy;
   vec2 off = texture2D(textureVelocity, uv).zw;
+  vec2 p = to;
+  float s = 1.0;
+  float env = 0.0;
 
-  float delay = sweepCoord(mix(from, to, 0.3), rnd.w) * uSpread + rnd.x * uJitter;
-  float travel = max(1e-3, (1.0 - uSpread - uJitter) * mix(0.72, 1.0, rnd.y));
-  float s = clamp((uT / uDuration - delay) / travel, 0.0, 1.0);
-  vec2 d = to - from;
-  float dist = length(d);
-  vec2 p = mix(from, to, easeInOutCubic(s));
+  // Every grain has landed and stopped wobbling: skip the flight maths.
+  if (uT < uDuration + 2.0) {
+    vec2 from = texture2D(tFrom, uv).xy;
+    float delay = sweepCoord(mix(from, to, 0.3), rnd.w) * uSpread + rnd.x * uJitter;
+    float travel = max(1e-3, (1.0 - uSpread - uJitter) * mix(0.72, 1.0, rnd.y));
+    s = clamp((uT / uDuration - delay) / travel, 0.0, 1.0);
+    vec2 d = to - from;
+    float dist = length(d);
+    p = mix(from, to, easeInOutCubic(s));
 
-  float env = sin(PI * s);
-  if (env > 0.0) {
-    // Streams arc slightly to one side, like sand swept by a palm.
-    p += vec2(-d.y, d.x) * (uBend * env * (0.75 + 0.5 * rnd.z));
-    // Curl-noise turbulence: strongest mid-flight, zero at start and end.
-    float amp = uTurb * env * env * (0.01 + 0.075 * min(dist, 2.5));
-    float tt = uFlowSeed + uT * 0.22;
-    vec2 c = curlNoise(p * 1.6 + uFlowSeed, tt) + 0.5 * curlNoise(p * 4.3 - uFlowSeed, tt * 1.7);
-    p += c * amp;
-  }
+    env = sin(PI * s);
+    if (env > 0.0) {
+      // Streams arc slightly to one side, like sand swept by a palm.
+      p += vec2(-d.y, d.x) * (uBend * env * (0.75 + 0.5 * rnd.z));
+      // Curl-noise turbulence: strongest mid-flight, zero at start and end.
+      float amp = uTurb * env * env * (0.01 + 0.075 * min(dist, 2.5));
+      float tt = uFlowSeed + uT * 0.22;
+      vec2 c = curlNoise(p * 1.6 + uFlowSeed, tt) + 0.5 * curlNoise(p * 4.3 - uFlowSeed, tt * 1.7);
+      p += c * amp;
+    }
 
-  // Grains tumble into place: a decaying wobble right after landing.
-  float ta = uT - (delay + travel) * uDuration;
-  if (ta > 0.0 && ta < 2.0) {
-    float a = uSettle * exp(-ta * 5.5) * sin(ta * (22.0 + 14.0 * rnd.z)) * (0.25 + min(dist * 2.0, 1.0));
-    float ang = rnd.w * 6.2831853;
-    p += vec2(cos(ang), sin(ang)) * a * 0.004;
+    // Grains tumble into place: a decaying wobble right after landing.
+    float ta = uT - (delay + travel) * uDuration;
+    if (ta > 0.0 && ta < 2.0) {
+      float a = uSettle * exp(-ta * 5.5) * sin(ta * (22.0 + 14.0 * rnd.z)) * (0.25 + min(dist * 2.0, 1.0));
+      float ang = rnd.w * 6.2831853;
+      p += vec2(cos(ang), sin(ang)) * a * 0.004;
+    }
   }
 
   // Idle shimmer, well below a pixel: resting sand glints instead of freezing.

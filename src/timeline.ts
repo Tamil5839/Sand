@@ -91,6 +91,8 @@ export class Timeline {
         if (token !== this.token) return;
         console.error('[sandglass] flow failed', err);
         this.waiting = null;
+        // Don't retry every frame from the idle state.
+        if (this.phase === 'idle') this.playing = false;
         this.host.changed();
       },
     );

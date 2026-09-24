@@ -159,10 +159,13 @@ export function buildUI(app: App): void {
 
   // --- Record ----------------------------------------------------------------
   const rec = gui.addFolder('Record');
-  rec
+  const aspectCtl = rec
     .add(app.settings, 'aspect', { '16:9 · 1920×1080': '16:9', '9:16 · 1080×1920': '9:16', '1:1 · 1080×1080': '1:1', 'Fit window': 'window' })
     .name('Frame')
-    .onChange((v: AspectPreset) => app.setAspect(v));
+    .onChange((v: AspectPreset) => {
+      app.setAspect(v);
+      aspectCtl.updateDisplay();
+    });
   rec
     .add(app.settings, 'previewScale', { Full: 1, '3/4': 0.75, Half: 0.5 })
     .name('Preview resolution')

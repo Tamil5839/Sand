@@ -142,8 +142,22 @@ export function makeThumbnail(scene: Scene, aspect: number): string {
   return c.toDataURL('image/png');
 }
 
+const MAX_SOURCE_SIDE = 2048;
+
 export async function sceneFromFile(file: File): Promise<Scene> {
-  const bitmap = await createImageBitmap(file);
+  let bitmap = await createImageBitmap(file);
+  // Big photos are drawn every time a flow is computed; keep them modest.
+  const big = Math.max(bitmap.width, bitmap.height);
+  if (big > MAX_SOURCE_SIDE) {
+    const k = MAX_SOURCE_SIDE / big;
+    const resized = await createImageBitmap(bitmap, {
+      resizeWidth: Math.round(bitmap.width * k),
+      resizeHeight: Math.round(bitmap.height * k),
+      resizeQuality: 'high',
+    });
+    bitmap.close();
+    bitmap = resized;
+  }
   const name = file.name.replace(/\.[^.]+$/, '');
   const isPhoto = /jpe?g|webp|heic/i.test(file.type);
   return createScene({
